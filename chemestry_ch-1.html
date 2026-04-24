@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANSH-ind education (matter arround us)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            color: #2d3748;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism & UI Classes */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            border-radius: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px 0 rgba(31, 38, 135, 0.15);
+        }
+
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Sidebar & Menu Animations */
+        #sidebar-overlay {
+            backdrop-filter: blur(5px);
+            transition: opacity 0.4s ease;
+        }
+        #sidebar {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+        .menu-item {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            padding-left: 2rem;
+            color: #60a5fa;
+        }
+        
+        /* Page Transition Animations */
+        .page-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(30px);
+            animation: none;
+        }
+        .page-content.active {
+            display: block;
+            animation: fadeUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeUpIn {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Lab & Quiz */
+        #labCanvasContainer {
+            background: radial-gradient(circle, #0f172a 0%, #020617 100%);
+            border-radius: 16px;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+        }
+        .correct-bg { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #166534 !important; font-weight: bold; }
+        .wrong-bg { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b !important; }
+        .fib-input {
+            background: transparent; border: none; border-bottom: 2px solid #3b82f6; outline: none;
+            text-align: center; font-weight: 600; color: #1d4ed8; width: 120px; transition: 0.3s;
+        }
+        .fib-input:focus { border-bottom: 2px solid #1e40af; width: 160px; }
+        
+        /* Custom Scrollbar for Sidebar */
+        #sidebar::-webkit-scrollbar { width: 6px; }
+        #sidebar::-webkit-scrollbar-track { background: transparent; }
+        #sidebar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    </style>
+    <!-- Three.js for 3D Lab -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="antialiased selection:bg-indigo-300 selection:text-indigo-900">
+
+    <!-- Top Navigation -->
+    <nav class="fixed w-full top-0 z-40 glass-nav shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center cursor-pointer" onclick="showPage(1)">
+                    <div class="bg-gradient-to-r from-indigo-600 to-blue-500 text-white p-2.5 rounded-xl mr-4 shadow-lg transform hover:scale-105 transition">
+                        <i class="fas fa-atom text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-2xl tracking-tight text-gray-900 block leading-none">ANSH-ind</span>
+                        <span class="text-xs font-bold text-indigo-600 tracking-widest uppercase">Education</span>
+                    </div>
+                </div>
+                
+                <button onclick="toggleSidebar()" class="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors shadow-sm border border-gray-200 bg-white">
+                    <i class="fas fa-ellipsis-v text-xl text-gray-800"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-50 hidden" onclick="toggleSidebar()"></div>
+
+    <!-- Animated Sidebar -->
+    <aside id="sidebar" class="fixed top-0 right-0 h-full w-80 z-50 translate-x-full overflow-y-auto shadow-2xl bg-slate-900/95 backdrop-blur-xl border-l border-white/10">
+        <div class="p-6 flex justify-between items-center border-b border-gray-700 sticky top-0 bg-slate-900/95 backdrop-blur-md z-10">
+            <h3 class="text-white font-bold text-xl"><i class="fas fa-book-open mr-2 text-indigo-400"></i> Index (15 Pages)</h3>
+            <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white transition transform hover:rotate-90">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        <div id="sidebar-links" class="py-4 flex flex-col font-medium text-gray-300">
+            <!-- Sidebar links generated by JS -->
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="pt-28 pb-20 min-h-screen">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <!-- Page 1 -->
+            <section id="page-1" class="page-content active">
+                <div class="text-center mb-16 mt-10">
+                    <span class="bg-indigo-100 text-indigo-800 font-bold px-4 py-1.5 rounded-full text-sm tracking-wide uppercase">Page 1 of 15</span>
+                    <h1 class="text-5xl md:text-7xl font-extrabold text-gray-900 mt-6 leading-tight mb-6">Introduction to <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Matter</span></h1>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">The foundational philosophy and scientific definition of everything that surrounds us in the universe.</p>
+                </div>
+                <div class="space-y-10">
+                    <div class="glass-card p-10">
+                        <h2 class="text-3xl font-extrabold bg-gradient-to-r from-blue-900 to-blue-500 bg-clip-text text-transparent mb-6 flex items-center"><i class="fas fa-globe-asia mr-4 text-blue-500"></i> What is Matter?</h2>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-6">Look around your surroundings. You see a large variety of things with different shapes, sizes, and textures. Everything in this universe is made up of material which scientists have named "matter". The air we breathe, the food we eat, stones, clouds, stars, plants, and animals, even a small drop of water or a particle of sand – everything is matter.</p>
+                        <p class="text-lg text-gray-700 leading-relaxed">The two fundamental conditions for anything to be classified as matter are: <br/>
+                        <strong>1. It must have Mass.</strong><br/>
+                        <strong>2. It must occupy Space (Volume).</strong></p>
+                    </div>
+                    <div class="glass-card p-10 border-l-8 border-orange-500 bg-gradient-to-r from-orange-50/80 to-white/50">
+                        <h3 class="text-2xl font-bold text-orange-600 mb-4 flex items-center"><i class="fas fa-scroll mr-3"></i> Historical Context (Panch Tatva)</h3>
+                        <p class="text-gray-800 text-lg leading-relaxed">Early Indian philosophers classified matter in the form of five basic elements – the "Panch Tatva": <strong>Air, Earth, Fire, Sky, and Water.</strong> According to them, everything, living or non-living, was made up of these five basic elements. Ancient Greek philosophers had arrived at a similar classification of matter.</p>
+                        <p class="text-gray-800 text-lg leading-relaxed mt-4">Modern-day scientists have evolved two types of classification of matter based on their physical properties and chemical nature. In this massive chapter module, we will explore the physical nature extensively.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 2 -->
+            <section id="page-2" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-indigo-100 text-indigo-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 2 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Physical Nature & Particulate Theory</h1>
+                </div>
+                <div class="space-y-8">
+                    <div class="glass-card p-10">
+                        <h2 class="text-3xl font-extrabold text-blue-900 mb-6">Matter is Made of Particles</h2>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-6">For a long time, two schools of thought prevailed regarding the nature of matter. One school believed matter to be continuous like a block of wood, whereas the other thought that matter was made up of particles like sand. Let us perform an activity to decide about the nature of matter.</p>
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-r-xl my-6">
+                            <h4 class="font-bold text-blue-900 text-xl mb-2">Activity 1.1: Dissolving Salt</h4>
+                            <p class="text-blue-800">Take a 100 mL beaker. Fill half the beaker with water and mark the level. Dissolve some salt/sugar with a glass rod. Observe any change in water level. Where does the salt go? Does the level change? <br/><br/><strong>Conclusion:</strong> When we dissolve salt in water, the particles of salt get into the spaces between particles of water. This proves matter is particulate.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-10 border-t-4 border-indigo-500">
+                        <h2 class="text-3xl font-extrabold text-indigo-900 mb-6">How small are these particles?</h2>
+                        <p class="text-lg text-gray-700 leading-relaxed mb-4">The particles of matter are very small – they are small beyond our imagination! The concept of the 'Atom' emerges from this extreme smallness.</p>
+                        <p class="text-lg text-gray-700 leading-relaxed"><strong>The Potassium Permanganate Experiment:</strong> If we take just 2-3 crystals of potassium permanganate and dissolve them in 100ml of water, the water gets a deep purple color. Even if we keep diluting it (taking 10ml and adding 90ml clear water) 5 to 8 times, the water still remains colored. This single experiment demonstrates that just one tiny crystal contains millions of tiny particles that keep dividing themselves into smaller and smaller particles.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 3 -->
+            <section id="page-3" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-indigo-100 text-indigo-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 3 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Characteristics of Particles</h1>
+                </div>
+                <div class="glass-card p-10 space-y-12">
+                    <div class="flex items-start gap-6">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">1</div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-3">Particles of matter have space between them</h2>
+                            <p class="text-gray-700 text-lg leading-relaxed">In the experiments of sugar, salt, Dettol, or potassium permanganate, we saw that particles of one type of matter get evenly distributed into the spaces between particles of the other. When we make tea, coffee or lemonade, the same thing happens. This indicates that there is enough space between particles of matter, scientifically known as <strong>intermolecular or interatomic space</strong>.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-6">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">2</div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-3">Particles of matter are continuously moving</h2>
+                            <p class="text-gray-700 text-lg leading-relaxed">If you put an unlit incense stick in a corner, you have to go close to smell it. But light it, and the smell reaches you from meters away. Why? Because particles possess <strong>Kinetic Energy</strong>. As temperature rises, particles move faster. We can say that with an increase in temperature, the kinetic energy of the particles also increases.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-6">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg flex-shrink-0">3</div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-3">Particles of matter attract each other</h2>
+                            <p class="text-gray-700 text-lg leading-relaxed">Try breaking an iron nail, a piece of chalk, and a rubber band. The iron nail requires immense force. This is because particles of matter have a force acting between them keeping them together. The strength of this force of attraction varies from one kind of matter to another. This is known as the <strong>intermolecular force of attraction</strong>.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 4 -->
+            <section id="page-4" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-indigo-100 text-indigo-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 4 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Kinetic Theory of Matter</h1>
+                </div>
+                <div class="glass-card p-10">
+                    <h2 class="text-3xl font-extrabold text-blue-900 mb-6">Deep Dive: Kinetic Theory</h2>
+                    <p class="text-lg text-gray-700 leading-relaxed mb-6">The kinetic theory of matter provides a microscopic explanation for macroscopic properties of matter. The fundamental postulates are:</p>
+                    <ul class="space-y-4 text-lg text-gray-700 list-disc pl-8 mb-8">
+                        <li>All matter is composed of tiny, discrete particles (atoms, ions, or molecules).</li>
+                        <li>These particles are in constant, random motion (translatory, rotatory, or vibratory).</li>
+                        <li>The particles possess kinetic energy due to this motion.</li>
+                        <li>Collisions between these particles are perfectly elastic (no net loss of kinetic energy).</li>
+                        <li>The average kinetic energy of the particles is directly proportional to the absolute temperature.</li>
+                    </ul>
+                    <div class="bg-gray-900 text-white p-8 rounded-2xl shadow-2xl relative overflow-hidden">
+                        <i class="fas fa-wind absolute -right-4 -bottom-4 text-9xl text-gray-800 opacity-50"></i>
+                        <h3 class="text-2xl font-bold text-blue-400 mb-4 z-10 relative">The Phenomenon of Diffusion</h3>
+                        <p class="text-gray-300 text-lg z-10 relative">The intermixing of particles of two different types of matter on their own is called diffusion. We also observe that on heating, diffusion becomes faster. Why? Because heating increases the thermal energy, which converts into kinetic energy, making the particles zip around at much higher velocities, causing rapid intermixing. <br/><br/><em>Example: The smell of hot sizzling food reaches you several meters away, but to get the smell from cold food you have to go close.</em></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 5 -->
+            <section id="page-5" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-orange-100 text-orange-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 5 of 15 (JEE Advanced)</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Intermolecular Forces (JEE Deep Dive)</h1>
+                </div>
+                <div class="glass-card p-10 border-l-8 border-orange-500 bg-orange-50/50">
+                    <h2 class="text-3xl font-black text-orange-600 mb-6 border-b-2 border-orange-200 pb-4">Van der Waals Forces & Beyond</h2>
+                    <p class="text-lg text-gray-800 leading-relaxed mb-6">In competitive physics and chemistry, the "force of attraction" is broken down mathematically and conceptually. Intermolecular forces are the forces of attraction and repulsion between interacting particles (atoms and molecules). This term does not include the electrostatic forces that exist between the two oppositely charged ions and the forces that hold atoms of a molecule together i.e., covalent bonds.</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-white/80 p-6 rounded-xl border border-orange-200 shadow-sm">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">1. Dispersion / London Forces</h4>
+                            <p class="text-gray-700 text-sm">Atoms and nonpolar molecules are electrically symmetrical. However, a momentary dipole can be created due to uneven electron distribution. This induces a dipole in a neighboring atom. These are the weakest forces.</p>
+                        </div>
+                        <div class="bg-white/80 p-6 rounded-xl border border-orange-200 shadow-sm">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">2. Dipole-Dipole Forces</h4>
+                            <p class="text-gray-700 text-sm">Act between molecules possessing permanent dipole moments (like HCl). The ends of the dipoles possess "partial charges". Stronger than London forces.</p>
+                        </div>
+                        <div class="bg-white/80 p-6 rounded-xl border border-orange-200 shadow-sm">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">3. Dipole-Induced Dipole</h4>
+                            <p class="text-gray-700 text-sm">Exists between a polar molecule having a permanent dipole and a non-polar molecule lacking a permanent dipole. The permanent dipole induces a dipole on the electrically neutral molecule.</p>
+                        </div>
+                        <div class="bg-white/80 p-6 rounded-xl border border-orange-200 shadow-sm">
+                            <h4 class="text-xl font-bold text-gray-900 mb-3">4. Hydrogen Bonding</h4>
+                            <p class="text-gray-700 text-sm">A special, very strong type of dipole-dipole interaction. Occurs only when H is covalently bonded to highly electronegative atoms (F, O, N). This is why water has an exceptionally high boiling point.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 6 -->
+            <section id="page-6" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-purple-100 text-purple-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 6 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">The Solid State</h1>
+                </div>
+                <div class="glass-card p-10 border-t-8 border-purple-600">
+                    <div class="flex items-center mb-8">
+                        <i class="fas fa-cube text-5xl text-purple-500 mr-6"></i>
+                        <h2 class="text-4xl font-bold text-gray-900">Rigidity & Structure</h2>
+                    </div>
+                    <p class="text-xl text-gray-700 leading-relaxed mb-8">Solids are characterized by strong intermolecular forces that keep the constituent particles in fixed positions. They can only oscillate about their mean positions.</p>
+                    <div class="bg-purple-50 rounded-2xl p-8 mb-8 border border-purple-100">
+                        <h3 class="text-2xl font-bold text-purple-900 mb-4">Properties of Solids:</h3>
+                        <ul class="text-lg text-purple-800 space-y-3 list-disc pl-6 font-medium">
+                            <li>Have a definite shape, distinct boundaries, and fixed volumes.</li>
+                            <li>Have negligible compressibility.</li>
+                            <li>Solids have a tendency to maintain their shape when subjected to outside force (Rigidity).</li>
+                            <li>Solids may break under force but it is difficult to change their shape.</li>
+                            <li>Density of solids is generally high.</li>
+                        </ul>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4 border-b pb-2">Addressing the Exceptions</h3>
+                    <div class="grid md:grid-cols-3 gap-6 text-gray-700">
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                            <strong>Rubber Band:</strong> It changes shape under force and regains the same shape when the force is removed. If excessive force is applied, it breaks. It is a solid.
+                        </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                            <strong>Salt & Sugar:</strong> When kept in different jars, they take the shape of the jar. However, the shape of each individual crystal remains fixed.
+                        </div>
+                        <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+                            <strong>Sponge:</strong> It is a solid yet we are able to compress it. Why? It has minute holes, in which air is trapped. When we press it, the air is expelled out.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 7 -->
+            <section id="page-7" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-blue-100 text-blue-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 7 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">The Liquid State</h1>
+                </div>
+                <div class="glass-card p-10 border-t-8 border-blue-500">
+                    <div class="flex items-center mb-8">
+                        <i class="fas fa-tint text-5xl text-blue-500 mr-6"></i>
+                        <h2 class="text-4xl font-bold text-gray-900">Fluidity & Flow</h2>
+                    </div>
+                    <p class="text-xl text-gray-700 leading-relaxed mb-8">In liquids, intermolecular forces are strong enough to keep particles bound together in a definite volume, but weak enough to allow them to slide past one another.</p>
+                    <div class="bg-blue-50 rounded-2xl p-8 mb-8 border border-blue-100">
+                        <h3 class="text-2xl font-bold text-blue-900 mb-4">Properties of Liquids:</h3>
+                        <ul class="text-lg text-blue-800 space-y-3 list-disc pl-6 font-medium">
+                            <li>Liquids have no fixed shape but have a fixed volume.</li>
+                            <li>They take up the shape of the container in which they are kept.</li>
+                            <li>Liquids flow and change shape, so they are not rigid but can be called <strong>fluid</strong>.</li>
+                            <li>Liquids are almost incompressible (hydraulics rely on this).</li>
+                            <li>Rate of diffusion is higher than that of solids.</li>
+                        </ul>
+                    </div>
+                    <div class="glass-card p-6 bg-gradient-to-r from-blue-900 to-indigo-900 text-white border-0 shadow-xl">
+                        <h4 class="text-xl font-bold mb-3"><i class="fas fa-fish mr-2"></i> Biological Importance of Diffusion in Liquids</h4>
+                        <p class="text-blue-100">Solids and liquids can diffuse into liquids. The gases from the atmosphere diffuse and dissolve in water. These gases, especially oxygen and carbon dioxide, are essential for the survival of aquatic animals and plants. All living creatures need to breathe for survival. Aquatic animals can breathe under water due to the presence of dissolved oxygen in water.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 8 -->
+            <section id="page-8" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-cyan-100 text-cyan-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 8 of 15</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">The Gaseous State</h1>
+                </div>
+                <div class="glass-card p-10 border-t-8 border-cyan-400">
+                    <div class="flex items-center mb-8">
+                        <i class="fas fa-cloud text-5xl text-cyan-500 mr-6"></i>
+                        <h2 class="text-4xl font-bold text-gray-900">High Compressibility & Random Motion</h2>
+                    </div>
+                    <p class="text-xl text-gray-700 leading-relaxed mb-8">Gases have the weakest intermolecular forces. The particles are far apart and move randomly at very high speeds in all directions.</p>
+                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div class="bg-cyan-50 rounded-2xl p-8 border border-cyan-100">
+                            <h3 class="text-2xl font-bold text-cyan-900 mb-4">Properties of Gases:</h3>
+                            <ul class="text-lg text-cyan-800 space-y-2 list-disc pl-6 font-medium">
+                                <li>Neither fixed shape nor fixed volume.</li>
+                                <li>Highly compressible.</li>
+                                <li>Exert pressure on the walls of the container.</li>
+                                <li>Lowest density among the three states.</li>
+                                <li>Highest rate of diffusion.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800 rounded-2xl p-8 border border-gray-700 text-white">
+                            <h3 class="text-2xl font-bold text-cyan-400 mb-4">Real-World Application</h3>
+                            <p class="text-gray-300 mb-4">Because of high compressibility, large volumes of a gas can be compressed into a small cylinder and transported easily.</p>
+                            <ul class="text-sm space-y-2 list-disc pl-5">
+                                <li><strong>LPG:</strong> Liquefied Petroleum Gas used in homes.</li>
+                                <li><strong>CNG:</strong> Compressed Natural Gas used as fuel in vehicles.</li>
+                                <li><strong>Oxygen Cylinders:</strong> Supplied to hospitals.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="p-6 border-2 border-dashed border-gray-300 rounded-xl bg-white text-center">
+                        <p class="text-lg font-bold text-gray-800">The Pressure of Gas</p>
+                        <p class="text-gray-600 mt-2">In the gaseous state, the particles move about randomly at high speed. Due to this random movement, the particles hit each other and also the walls of the container. The pressure exerted by the gas is because of this force exerted by gas particles per unit area on the walls of the container.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 9 -->
+            <section id="page-9" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-pink-100 text-pink-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 9 of 15 (Advanced Theories)</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Plasma & Bose-Einstein Condensate</h1>
+                </div>
+                <div class="glass-card p-10 space-y-10">
+                    <p class="text-xl text-gray-700 leading-relaxed text-center font-medium italic">While solid, liquid, and gas are the three common states, modern scientists talk about five states of matter.</p>
+                    <div class="bg-gradient-to-r from-gray-900 to-purple-900 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-64 h-64 bg-pink-500 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
+                        <h2 class="text-4xl font-black mb-4 flex items-center"><i class="fas fa-sun text-yellow-400 mr-4"></i> The 4th State: Plasma</h2>
+                        <p class="text-lg text-purple-100 leading-relaxed mb-4">The state consists of super energetic and super excited particles. These particles are in the form of ionized gases.</p>
+                        <ul class="list-disc pl-6 space-y-2 text-purple-200">
+                            <li>The fluorescent tube and neon sign bulbs consist of plasma.</li>
+                            <li>Inside a neon sign bulb there is neon gas and inside a fluorescent tube there is helium gas or some other gas.</li>
+                            <li>The gas gets ionized, that is, gets charged when electrical energy flows through it. This charging up creates a plasma glowing inside the tube or bulb.</li>
+                            <li>The sun and the stars glow because of the presence of plasma in them. The plasma is created in stars because of very high temperature.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-gradient-to-r from-cyan-900 to-blue-900 p-8 rounded-3xl text-white shadow-2xl relative overflow-hidden">
+                        <div class="absolute left-0 bottom-0 w-64 h-64 bg-cyan-400 rounded-full mix-blend-screen filter blur-3xl opacity-20"></div>
+                        <h2 class="text-4xl font-black mb-4 flex items-center"><i class="fas fa-snowflake text-cyan-300 mr-4"></i> The 5th State: BEC</h2>
+                        <p class="text-lg text-blue-100 leading-relaxed mb-4">In 1920, Indian physicist Satyendra Nath Bose made some calculations for a fifth state of matter. Building on his calculations, Albert Einstein predicted a new state of matter – the Bose-Einstein Condensate (BEC).</p>
+                        <div class="bg-black/30 p-5 rounded-xl border border-white/10 mt-4 text-cyan-50">
+                            <strong>How is it formed?</strong> The BEC is formed by cooling a gas of extremely low density, about one-hundred-thousandth the density of normal air, to super low temperatures (near absolute zero, 0 Kelvin or -273.15°C). At this point, the atoms clump together and enter the same energy state, acting as a single quantum "super-atom."
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 10 -->
+            <section id="page-10" class="page-content">
+                <div class="text-center mb-12 mt-6"><h1 class="text-5xl font-extrabold text-gray-900 mt-6">Change of State: Temperature Effects</h1></div>
+                <div class="glass-card p-10"><p class="text-xl leading-relaxed text-gray-700">When we heat a solid, the kinetic energy of its particles increases. Due to the increase in kinetic energy, the particles start vibrating with greater speed. The energy supplied by heat overcomes the forces of attraction between the particles. The particles leave their fixed positions and start moving more freely. A stage is reached when the solid melts and is converted to a liquid. The minimum temperature at which a solid melts to become a liquid at the atmospheric pressure is called its <strong>melting point</strong>. (e.g., Ice melts at 273.15 K).</p></div>
+            </section>
+
+            <!-- Page 11 -->
+            <section id="page-11" class="page-content">
+                <div class="text-center mb-12 mt-6"><h1 class="text-5xl font-extrabold text-gray-900 mt-6">Latent Heat (Hidden Heat)</h1></div>
+                <div class="glass-card p-10"><h3 class="text-3xl font-bold mb-4 text-red-600">The Mystery of Constant Temperature</h3><p class="text-xl text-gray-700 leading-relaxed mb-6">During the melting process, once the melting point is reached, the temperature does not change until all the ice melts. Where does the heat energy go? This heat gets used up in changing the state by overcoming the forces of attraction between the particles. As this heat energy is absorbed by ice without showing any rise in temperature, it is considered that it gets hidden into the contents of the beaker and is known as the <strong>latent heat</strong>.<br/><br/><strong>Latent Heat of Fusion:</strong> The amount of heat energy required to change 1 kg of a solid into a liquid at atmospheric pressure at its melting point.<br/><br/><strong>Latent Heat of Vaporization:</strong> Heat required to change 1 kg liquid to gas at its boiling point.</p></div>
+            </section>
+
+            <!-- Page 12 -->
+            <section id="page-12" class="page-content">
+                <div class="text-center mb-12 mt-6"><h1 class="text-5xl font-extrabold text-gray-900 mt-6">Sublimation & Effect of Pressure</h1></div>
+                <div class="glass-card p-10"><h3 class="text-3xl font-bold text-indigo-700 mb-4">Skipping the Liquid Phase</h3><p class="text-xl text-gray-700 leading-relaxed">A change of state directly from solid to gas without changing into liquid state is called <strong>sublimation</strong> and the direct change of gas to solid without changing into liquid is called <strong>deposition</strong>. Example: Camphor, Ammonium Chloride.<br/><br/><strong>Effect of Change of Pressure:</strong> Applying pressure and reducing temperature can liquefy gases. Solid carbon dioxide (CO2) is stored under high pressure. Solid CO2 gets converted directly to gaseous state on decrease of pressure to 1 atmosphere without coming into liquid state. This is the reason that solid carbon dioxide is also known as dry ice.</p></div>
+            </section>
+
+            <!-- Page 13 -->
+            <section id="page-13" class="page-content">
+                <div class="text-center mb-12 mt-6"><h1 class="text-5xl font-extrabold text-gray-900 mt-6">Evaporation & Cooling Effects</h1></div>
+                <div class="glass-card p-10"><h3 class="text-3xl font-bold text-teal-600 mb-4">A Surface Phenomenon</h3><p class="text-xl text-gray-700 leading-relaxed mb-6">Do we always need to heat or change pressure for changing the state of matter? Water, when left uncovered, slowly changes into vapour. Wet clothes dry up. What happens? Particles of matter are never at rest. At any given temperature in any gas, liquid or solid, there are particles with different amounts of kinetic energy. In the case of liquids, a small fraction of particles at the surface, having higher kinetic energy, is able to break away from the forces of attraction of other particles and gets converted into vapour. This is <strong>Evaporation</strong>.</p><h4 class="text-2xl font-bold mt-8 mb-4">Why does it cause cooling?</h4><p class="text-lg text-gray-700">In an open vessel, the liquid keeps on evaporating. The particles of liquid absorb energy from the surrounding to regain the energy lost during evaporation. This absorption of energy from the surroundings makes the surroundings cold. Example: Pouring acetone (nail polish remover) on your palm.</p></div>
+            </section>
+
+            <!-- Page 14 (3D Virtual Lab) -->
+            <section id="page-14" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-indigo-100 text-indigo-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 14 of 15 (Interactive)</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6"><i class="fas fa-flask text-indigo-600 mr-3"></i>3D Virtual Lab Simulation</h1>
+                    <p class="text-xl text-gray-600 mt-4">Visualize the kinetic particle theory in 3D Cartoon style.</p>
+                </div>
+                <div class="glass-card p-6 md:p-10 flex flex-col items-center">
+                    <div class="flex flex-wrap justify-center gap-4 mb-8 w-full">
+                        <button onclick="setLabState('solid')" id="btn-solid" class="px-8 py-3 font-bold rounded-xl shadow transition w-32 bg-purple-600 text-white shadow-lg transform scale-105">Solid</button>
+                        <button onclick="setLabState('liquid')" id="btn-liquid" class="px-8 py-3 font-bold rounded-xl shadow transition w-32 bg-gray-200 text-gray-700 hover:bg-gray-300">Liquid</button>
+                        <button onclick="setLabState('gas')" id="btn-gas" class="px-8 py-3 font-bold rounded-xl shadow transition w-32 bg-gray-200 text-gray-700 hover:bg-gray-300">Gas</button>
+                    </div>
+                    <div class="relative w-full max-w-4xl mx-auto aspect-[16/9] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-800">
+                        <div id="labCanvasContainer" class="absolute inset-0 w-full h-full"></div>
+                        <div class="absolute bottom-6 left-6 bg-black/70 backdrop-blur-md text-white p-6 rounded-xl border border-white/20 max-w-sm pointer-events-none z-10">
+                            <h4 id="sim-title" class="font-bold text-2xl mb-2 text-[#a855f7]">Solid State</h4>
+                            <p id="sim-desc" class="text-sm text-gray-300 leading-relaxed">Particles tightly packed in a fixed lattice. High intermolecular force, minimum kinetic energy.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Page 15 (Quizzes) -->
+            <section id="page-15" class="page-content">
+                <div class="text-center mb-12 mt-6">
+                    <span class="bg-green-100 text-green-800 font-bold px-4 py-1.5 rounded-full text-sm">Page 15 of 15 (Final Test)</span>
+                    <h1 class="text-5xl font-extrabold text-gray-900 mt-6">Ultimate Mastery Practice</h1>
+                    <p class="text-xl text-gray-600 mt-4">Test your knowledge with 60 rigorous questions across three categories.</p>
+                </div>
+                <div class="space-y-12">
+                    
+                    <!-- MCQs -->
+                    <div class="glass-card overflow-hidden">
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
+                            <h3 class="text-2xl font-bold text-white flex items-center"><i class="fas fa-list-ul mr-3"></i> Objective Questions (20 MCQs)</h3>
+                        </div>
+                        <div class="p-8">
+                            <div id="mcq-container" class="space-y-6"></div>
+                            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col items-start gap-4">
+                                <button id="btn-submit-mcq" onclick="submitMCQ()" class="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-xl transition w-full md:w-auto text-lg">Submit Objectives</button>
+                                <p id="mcq-score" class="font-black text-2xl hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TFs -->
+                    <div class="glass-card overflow-hidden">
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
+                            <h3 class="text-2xl font-bold text-white flex items-center"><i class="fas fa-check-double mr-3"></i> True or False (20 Questions)</h3>
+                        </div>
+                        <div class="p-8">
+                            <div id="tf-container" class="space-y-4"></div>
+                            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col items-start gap-4">
+                                <button id="btn-submit-tf" onclick="submitTF()" class="px-8 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-xl transition w-full md:w-auto text-lg">Submit True/False</button>
+                                <p id="tf-score" class="font-black text-2xl hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FIBs -->
+                    <div class="glass-card overflow-hidden">
+                        <div class="bg-gradient-to-r from-teal-600 to-emerald-600 px-8 py-6">
+                            <h3 class="text-2xl font-bold text-white flex items-center"><i class="fas fa-pen-nib mr-3"></i> Fill in the Blanks (20 Questions)</h3>
+                        </div>
+                        <div class="p-8">
+                            <div id="fib-container" class="space-y-6"></div>
+                            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-col items-start gap-4">
+                                <button id="btn-submit-fib" onclick="submitFIB()" class="px-8 py-4 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 shadow-xl transition w-full md:w-auto text-lg">Submit Answers</button>
+                                <p id="fib-score" class="font-black text-2xl hidden"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 pt-16 pb-8 border-t border-gray-800 z-30 relative">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-12 items-center mb-12 border-b border-gray-800 pb-12">
+                <div>
+                    <h2 class="text-3xl font-extrabold text-white mb-4">ANSH-ind <span class="text-indigo-500">Education</span></h2>
+                    <p class="text-gray-400 max-w-md">Building premium, massive, visualization-rich educational experiences for students targeting boards and competitive exams like JEE/NEET.</p>
+                </div>
+                <div class="bg-gray-800 rounded-2xl p-6 shadow-inner">
+                    <h3 class="text-xl font-bold text-white mb-4">Contact Developer</h3>
+                    <ul class="space-y-4">
+                        <li class="flex items-center text-gray-300">
+                            <div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4 text-indigo-400"><i class="fas fa-envelope"></i></div>
+                            <a href="mailto:ansh0000000001@gmail.com" class="hover:text-indigo-400 transition">ansh0000000001@gmail.com</a>
+                        </li>
+                        <li class="flex items-center text-gray-300">
+                            <div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4 text-green-400"><i class="fas fa-phone-alt"></i></div>
+                            <a href="tel:9508481289" class="hover:text-green-400 transition">+91 9508481289</a>
+                        </li>
+                        <li class="flex items-center text-gray-300">
+                            <div class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center mr-4 text-white"><i class="fab fa-github"></i></div>
+                            <a href="https://github.com/ANSH-ind" target="_blank" rel="noreferrer" class="hover:text-white transition">github.com/ANSH-ind</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="text-center text-gray-500 text-sm">
+                <p>&copy; 2026 ANSH-ind Education. Built for excellence.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        // ================= DATA =================
+        const pageTitles = [
+            "1. Introduction to Matter", "2. Physical Nature & Particulate Theory", "3. Characteristics of Particles",
+            "4. Kinetic Theory of Matter", "5. Intermolecular Forces (JEE Deep Dive)", "6. The Solid State",
+            "7. The Liquid State", "8. The Gaseous State", "9. Plasma & Bose-Einstein Condensate",
+            "10. Change of State: Temperature Effects", "11. Latent Heat (Fusion & Vaporization)",
+            "12. Sublimation, Deposition & Pressure", "13. Evaporation & Cooling Effects",
+            "14. Interactive 3D Virtual Lab", "15. Ultimate Mastery Practice (60 Qs)"
+        ];
+
+        const mcqData = [
+            {q: "1. The physical state of water at 250°C is:", opts: ["Solid", "Liquid", "Gas", "Plasma"], ans: 2},
+            {q: "2. The process causing cooling in an earthen pot is:", opts: ["Diffusion", "Transpiration", "Evaporation", "Osmosis"], ans: 2},
+            {q: "3. Kinetic energy of molecules is highest in:", opts: ["Gases", "Liquids", "Solids", "Solutions"], ans: 0},
+            {q: "4. Which condition increases evaporation?", opts: ["Increase in temp", "Decrease in temp", "Less surface area", "High humidity"], ans: 0},
+            {q: "5. SI unit of temperature is:", opts: ["Celsius", "Fahrenheit", "Kelvin", "Pascal"], ans: 2},
+            {q: "6. Solid to gas directly is called:", opts: ["Vaporization", "Sublimation", "Condensation", "Boiling"], ans: 1},
+            {q: "7. Dry ice is solid:", opts: ["Oxygen", "Carbon Dioxide", "Nitrogen", "Water"], ans: 1},
+            {q: "8. During melting, temperature:", opts: ["Increases", "Decreases", "Remains constant", "First increases then decreases"], ans: 2},
+            {q: "9. Forces of attraction are maximum in:", opts: ["Air", "Water", "Chalk", "Oxygen"], ans: 2},
+            {q: "10. Hidden heat during state change is:", opts: ["Specific heat", "Latent heat", "Sensible heat", "Radiant heat"], ans: 1},
+            {q: "11. Boiling point of water in Kelvin is:", opts: ["273 K", "373 K", "100 K", "0 K"], ans: 1},
+            {q: "12. Smell of hot food reaches us by:", opts: ["Diffusion", "Osmosis", "Evaporation", "Sublimation"], ans: 0},
+            {q: "13. Evaporation is a:", opts: ["Bulk phenomenon", "Surface phenomenon", "Chemical change", "Nuclear change"], ans: 1},
+            {q: "14. Humidity refers to amount of _____ in air.", opts: ["Oxygen", "Nitrogen", "Water vapor", "Dust"], ans: 2},
+            {q: "15. Condensation is change from:", opts: ["Liquid to Gas", "Gas to Liquid", "Solid to Liquid", "Liquid to Solid"], ans: 1},
+            {q: "16. 4th state of matter is:", opts: ["BEC", "Plasma", "Superfluid", "Solid"], ans: 1},
+            {q: "17. A sponge is compressible but considered a:", opts: ["Solid", "Liquid", "Gas", "Fluid"], ans: 0},
+            {q: "18. Which gas is in LPG cylinders?", opts: ["Compressed Natural Gas", "Liquefied Petroleum Gas", "Hydrogen", "Oxygen"], ans: 1},
+            {q: "19. The property to flow is unique to:", opts: ["Solids", "Liquids", "Gases", "Fluids (Liquids & Gases)"], ans: 3},
+            {q: "20. Bose-Einstein Condensate is formed at:", opts: ["High Temp", "Very Low Density & Low Temp", "High Pressure", "Room Temp"], ans: 1}
+        ];
+
+        const tfData = [
+            {q: "1. Gases have a definite shape and volume.", ans: false}, {q: "2. Evaporation causes cooling of surroundings.", ans: true},
+            {q: "3. Boiling is a surface phenomenon.", ans: false}, {q: "4. Matter is continuous like a block of wood.", ans: false},
+            {q: "5. Particles of matter are continuously moving.", ans: true}, {q: "6. Intermolecular space is minimum in solids.", ans: true},
+            {q: "7. Kinetic energy decreases with increase in temperature.", ans: false}, {q: "8. Compressibility is maximum in gases.", ans: true},
+            {q: "9. Latent heat of fusion applies to boiling of water.", ans: false}, {q: "10. Sublimation involves a liquid phase.", ans: false},
+            {q: "11. Plasma consists of super energetic ionized particles.", ans: true}, {q: "12. Wind speed increases the rate of evaporation.", ans: true},
+            {q: "13. Deposition is the reverse of sublimation.", ans: true}, {q: "14. Water evaporates only at 100°C.", ans: false},
+            {q: "15. The temperature remains constant during phase change.", ans: true}, {q: "16. Density of ice is more than liquid water.", ans: false},
+            {q: "17. Vapor pressure equals atmospheric pressure at boiling point.", ans: true}, {q: "18. Aquatic animals breathe oxygen dissolved via diffusion.", ans: true},
+            {q: "19. Solids diffuse rapidly into one another.", ans: false}, {q: "20. The SI unit of mass is Newton.", ans: false}
+        ];
+
+        const fibData = [
+            {pre: "1. The direct change of solid to gas is called", post: ".", ans: "sublimation"}, {pre: "2. Solid carbon dioxide is known as", post: ".", ans: "dry ice"},
+            {pre: "3. People wear", post: "clothes in summer.", ans: "cotton"}, {pre: "4. Intermixing of particles of different types of matter is", post: ".", ans: "diffusion"},
+            {pre: "5. Boiling is a", post: "phenomenon.", ans: "bulk"}, {pre: "6. Evaporation is a", post: "phenomenon.", ans: "surface"},
+            {pre: "7. The SI unit of volume is", post: ".", ans: "cubic meter"}, {pre: "8. Gases are highly", post: "as compared to solids.", ans: "compressible"},
+            {pre: "9. The hidden heat which breaks force of attraction is called", post: "heat.", ans: "latent"}, {pre: "10. The state of matter consisting of ionized gas is", post: ".", ans: "plasma"},
+            {pre: "11. 0°C is equal to", post: "K.", ans: "273"}, {pre: "12. Humidity is the amount of", post: "present in air.", ans: "water vapor"},
+            {pre: "13. Rate of evaporation decreases with increase in", post: ".", ans: "humidity"}, {pre: "14. Liquids have fixed volume but no fixed", post: ".", ans: "shape"},
+            {pre: "15. Solids have maximum force of", post: "between particles.", ans: "attraction"}, {pre: "16. CNG stands for", post: "Natural Gas.", ans: "compressed"},
+            {pre: "17. The melting point of ice is", post: "K.", ans: "273.15"}, {pre: "18. During change of state, the", post: "remains constant.", ans: "temperature"},
+            {pre: "19. Fluorescent tubes contain", post: "state of matter.", ans: "plasma"}, {pre: "20. The property of flowing is called", post: ".", ans: "fluidity"}
+        ];
+
+        // ================= ROUTING =================
+        let currentPage = 1;
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showPage(pageNum) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active', 'bg-white/5', 'pl-8', 'text-blue-400'));
+            
+            const target = document.getElementById(`page-${pageNum}`);
+            if(target) target.classList.add('active');
+            
+            const link = document.getElementById(`menu-link-${pageNum}`);
+            if(link) link.classList.add('active', 'bg-white/5', 'pl-8', 'text-blue-400');
+
+            currentPage = pageNum;
+            window.scrollTo({top: 0, behavior: 'smooth'});
+
+            if(!document.getElementById('sidebar').classList.contains('translate-x-full')){
+                toggleSidebar();
+            }
+
+            // If Three.js page is opened, wait for display block to apply, then resize
+            if(pageNum === 14) {
+                setTimeout(() => {
+                    if(camera && renderer) {
+                        const w = container.clientWidth;
+                        const h = container.clientHeight;
+                        camera.aspect = w / h;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(w, h);
+                    } else {
+                        initThreeJS();
+                    }
+                }, 50);
+            }
+        }
+
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-links');
+            container.innerHTML = pageTitles.map((title, i) => `
+                <button id="menu-link-${i+1}" onclick="showPage(${i+1})" class="menu-item text-left px-6 py-4 border-b border-gray-800 w-full flex items-center transition-all duration-300 hover:bg-white/10 hover:pl-8 hover:text-blue-400">
+                    <span class="w-8 h-8 rounded-full bg-slate-800 text-indigo-400 flex items-center justify-center text-xs font-bold mr-3 border border-slate-700 flex-shrink-0">${i+1}</span>
+                    <span class="text-sm leading-tight">${title.split('. ')[1]}</span>
+                </button>
+            `).join('');
+            document.getElementById('menu-link-1').classList.add('active', 'bg-white/5', 'pl-8', 'text-blue-400');
+        }
+
+        // ================= QUIZ LOGIC =================
+        function renderQuizzes() {
+            // MCQs
+            document.getElementById('mcq-container').innerHTML = mcqData.map((item, i) => `
+                <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                    <p class="font-bold text-lg text-gray-800 mb-4">${item.q}</p>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        ${item.opts.map((opt, j) => `
+                            <label class="flex items-center p-4 rounded-xl cursor-pointer shadow-sm transition bg-white border hover:bg-gray-50 mcq-label-${i}">
+                                <input type="radio" name="mcq${i}" value="${j}" class="w-5 h-5 text-blue-600">
+                                <span class="ml-3 font-medium text-lg">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div id="mcq-feed-${i}" class="mt-3 text-lg font-bold hidden"></div>
+                </div>
+            `).join('');
+
+            // TFs
+            document.getElementById('tf-container').innerHTML = tfData.map((item, i) => `
+                <div class="flex flex-col md:flex-row md:items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-200">
+                    <p class="font-medium text-lg text-gray-800 mb-3 md:mb-0 w-full md:w-2/3">${item.q}</p>
+                    <div class="flex space-x-3 md:w-1/3 justify-end">
+                        ${[true, false].map(val => `
+                            <label class="flex items-center px-6 py-3 shadow-sm rounded-xl cursor-pointer transition bg-white border hover:bg-indigo-50 tf-label-${i}">
+                                <input type="radio" name="tf${i}" value="${val}" class="w-5 h-5 text-indigo-600">
+                                <span class="ml-2 font-bold text-gray-700">${val ? 'True' : 'False'}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            // FIBs
+            document.getElementById('fib-container').innerHTML = fibData.map((item, i) => `
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-200 text-xl text-gray-800">
+                    <span>${item.pre}</span>
+                    <input type="text" id="fib${i}" class="fib-input mx-2 text-center text-xl bg-transparent border-b-2 outline-none font-bold transition-all w-32 focus:w-40" placeholder="...">
+                    <span>${item.post}</span>
+                    <div id="fib-feed-${i}" class="mt-2 text-lg font-bold hidden"></div>
+                </div>
+            `).join('');
+        }
+
+        function submitMCQ() {
+            let score = 0;
+            mcqData.forEach((item, i) => {
+                const selected = document.querySelector(`input[name="mcq${i}"]:checked`);
+                const labels = document.querySelectorAll(`.mcq-label-${i}`);
+                const feed = document.getElementById(`mcq-feed-${i}`);
+                
+                labels.forEach(l => l.querySelector('input').disabled = true); // Disable
+
+                if(selected) {
+                    const val = parseInt(selected.value);
+                    if(val === item.ans) {
+                        score++;
+                        selected.parentElement.classList.add('correct-bg');
+                        feed.innerHTML = `<i class="fas fa-check"></i> Correct!`;
+                        feed.className = "mt-3 text-lg font-bold text-green-600 block";
+                    } else {
+                        selected.parentElement.classList.add('wrong-bg');
+                        labels[item.ans].classList.add('correct-bg');
+                        feed.innerHTML = `<i class="fas fa-times"></i> Wrong. Correct is highlighted green.`;
+                        feed.className = "mt-3 text-lg font-bold text-red-600 block";
+                    }
+                } else {
+                    labels[item.ans].classList.add('correct-bg'); // Show correct anyway
+                }
+            });
+            document.getElementById('btn-submit-mcq').classList.add('hidden');
+            const scoreP = document.getElementById('mcq-score');
+            scoreP.innerHTML = `Your Score: <span class="${score>=15?'text-green-600':'text-red-600'}">${score}/20</span>`;
+            scoreP.classList.remove('hidden');
+        }
+
+        function submitTF() {
+            let score = 0;
+            tfData.forEach((item, i) => {
+                const selected = document.querySelector(`input[name="tf${i}"]:checked`);
+                const labels = document.querySelectorAll(`.tf-label-${i}`);
+                
+                labels.forEach(l => l.querySelector('input').disabled = true);
+
+                if(selected) {
+                    const val = selected.value === 'true';
+                    if(val === item.ans) {
+                        score++;
+                        selected.parentElement.classList.add('correct-bg');
+                    } else {
+                        selected.parentElement.classList.add('wrong-bg');
+                        const correctLabel = document.querySelector(`input[name="tf${i}"][value="${item.ans}"]`).parentElement;
+                        correctLabel.classList.add('correct-bg');
+                    }
+                } else {
+                    const correctLabel = document.querySelector(`input[name="tf${i}"][value="${item.ans}"]`).parentElement;
+                    correctLabel.classList.add('correct-bg');
+                }
+            });
+            document.getElementById('btn-submit-tf').classList.add('hidden');
+            const scoreP = document.getElementById('tf-score');
+            scoreP.innerHTML = `Your Score: <span class="${score>=15?'text-green-600':'text-red-600'}">${score}/20</span>`;
+            scoreP.classList.remove('hidden');
+        }
+
+        function submitFIB() {
+            let score = 0;
+            fibData.forEach((item, i) => {
+                const input = document.getElementById(`fib${i}`);
+                const feed = document.getElementById(`fib-feed-${i}`);
+                input.disabled = true;
+
+                const val = input.value.trim().toLowerCase();
+                if(val === item.ans.toLowerCase()) {
+                    score++;
+                    input.classList.add('text-green-700', 'border-green-500', 'bg-green-50');
+                    feed.innerHTML = `<i class="fas fa-check"></i> Correct`;
+                    feed.className = "mt-2 text-lg font-bold text-green-600 block";
+                } else {
+                    input.classList.add('text-red-700', 'border-red-500', 'bg-red-50');
+                    feed.innerHTML = `<i class="fas fa-times"></i> Correct Answer: ${item.ans}`;
+                    feed.className = "mt-2 text-lg font-bold text-red-600 block";
+                }
+            });
+            document.getElementById('btn-submit-fib').classList.add('hidden');
+            const scoreP = document.getElementById('fib-score');
+            scoreP.innerHTML = `Your Score: <span class="${score>=15?'text-green-600':'text-red-600'}">${score}/20</span>`;
+            scoreP.classList.remove('hidden');
+        }
+
+        // ================= THREE.JS 3D VIRTUAL LAB =================
+        let currentLabState = 'solid';
+        let scene, camera, renderer, container;
+        let particles = [];
+        let reqAnimFrame;
+
+        const statesConfig = {
+            solid: { title: "Solid State", desc: "Particles tightly packed in a fixed lattice. High intermolecular force, minimum kinetic energy.", color: 0xa855f7, btnClass: "bg-purple-600 text-white shadow-lg transform scale-105", speed: 0.1, spacing: 3, radius: 1.2 },
+            liquid: { title: "Liquid State", desc: "Particles have more kinetic energy. They slide past each other but remain relatively close.", color: 0x3b82f6, btnClass: "bg-blue-600 text-white shadow-lg transform scale-105", speed: 0.25, spacing: 3, radius: 1.2 },
+            gas: { title: "Gaseous State", desc: "Maximum kinetic energy, almost negligible intermolecular forces. Particles move randomly filling the container.", color: 0x06b6d4, btnClass: "bg-cyan-500 text-white shadow-lg transform scale-105", speed: 0.6, spacing: 5, radius: 1.2 }
+        };
+
+        function initThreeJS() {
+            container = document.getElementById('labCanvasContainer');
+            if(!container) return;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0f172a);
+
+            // Container Box Helper
+            const boxGeo = new THREE.BoxGeometry(40, 20, 20);
+            const boxEdges = new THREE.EdgesGeometry(boxGeo);
+            const boxMat = new THREE.LineBasicMaterial({ color: 0x334155, linewidth: 2 });
+            const box = new THREE.LineSegments(boxEdges, boxMat);
+            scene.add(box);
+
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+            camera.position.z = 35;
+            camera.position.y = 5;
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(w, h);
+            container.appendChild(renderer.domElement);
+
+            // Cartoon Lights
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 15);
+            scene.add(dirLight);
+
+            generateParticles();
+            animateLab();
+
+            window.addEventListener('resize', () => {
+                if(!container || !camera || !renderer) return;
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            });
+        }
+
+        function generateParticles() {
+            if(!scene) return;
+            // Clean up
+            particles.forEach(p => scene.remove(p.mesh));
+            particles = [];
+
+            const conf = statesConfig[currentLabState];
+            const material = new THREE.MeshToonMaterial({ color: conf.color });
+            const geometry = new THREE.SphereGeometry(conf.radius, 16, 16);
+
+            if(currentLabState === 'solid') {
+                const cols = 5, rows = 4, depth = 3;
+                const startX = -((cols-1) * conf.spacing) / 2;
+                const startY = -((rows-1) * conf.spacing) / 2;
+                const startZ = -((depth-1) * conf.spacing) / 2;
+
+                for(let i=0; i<cols; i++) {
+                    for(let j=0; j<rows; j++) {
+                        for(let k=0; k<depth; k++) {
+                            const mesh = new THREE.Mesh(geometry, material);
+                            const bx = startX + i*conf.spacing;
+                            const by = startY + j*conf.spacing;
+                            const bz = startZ + k*conf.spacing;
+                            mesh.position.set(bx, by, bz);
+                            scene.add(mesh);
+                            particles.push({ mesh, basex: bx, basey: by, basez: bz, vx:0, vy:0, vz:0 });
+                        }
+                    }
+                }
+            } else if(currentLabState === 'liquid') {
+                for(let i=0; i<100; i++) {
+                    const mesh = new THREE.Mesh(geometry, material);
+                    const x = (Math.random() - 0.5) * 35;
+                    const y = -10 + Math.random() * 8; // Bottom
+                    const z = (Math.random() - 0.5) * 15;
+                    mesh.position.set(x, y, z);
+                    scene.add(mesh);
+                    particles.push({ mesh, vx: (Math.random()-0.5), vy: (Math.random()-0.5), vz: (Math.random()-0.5) });
+                }
+            } else if(currentLabState === 'gas') {
+                for(let i=0; i<60; i++) {
+                    const mesh = new THREE.Mesh(geometry, material);
+                    const x = (Math.random() - 0.5) * 35;
+                    const y = (Math.random() - 0.5) * 15;
+                    const z = (Math.random() - 0.5) * 15;
+                    mesh.position.set(x, y, z);
+                    scene.add(mesh);
+                    particles.push({ mesh, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, vz: (Math.random()-0.5)*2 });
+                }
+            }
+        }
+
+        function updateParticles() {
+            const conf = statesConfig[currentLabState];
+            const bounds = { x: 19, y: 9, z: 9 };
+
+            particles.forEach(p => {
+                if (currentLabState === 'solid') {
+                    p.mesh.position.x = p.basex + (Math.random() - 0.5) * conf.speed;
+                    p.mesh.position.y = p.basey + (Math.random() - 0.5) * conf.speed;
+                    p.mesh.position.z = p.basez + (Math.random() - 0.5) * conf.speed;
+                } else {
+                    p.mesh.position.x += p.vx * conf.speed;
+                    p.mesh.position.y += p.vy * conf.speed;
+                    p.mesh.position.z += p.vz * conf.speed;
+
+                    // Walls
+                    if(p.mesh.position.x > bounds.x || p.mesh.position.x < -bounds.x) p.vx *= -1;
+                    if(p.mesh.position.z > bounds.z || p.mesh.position.z < -bounds.z) p.vz *= -1;
+
+                    if (currentLabState === 'liquid') {
+                        if(p.mesh.position.y > -2 || p.mesh.position.y < -bounds.y) {
+                            p.vy *= -1;
+                            if(p.mesh.position.y < -bounds.y) p.mesh.position.y = -bounds.y;
+                        }
+                    } else if (currentLabState === 'gas') {
+                        if(p.mesh.position.y > bounds.y || p.mesh.position.y < -bounds.y) p.vy *= -1;
+                    }
+                }
+            });
+        }
+
+        function animateLab() {
+            reqAnimFrame = requestAnimationFrame(animateLab);
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+
+        function setLabState(state) {
+            currentLabState = state;
+            const conf = statesConfig[state];
+
+            document.getElementById('sim-title').innerText = conf.title;
+            document.getElementById('sim-title').style.color = '#' + conf.color.toString(16);
+            document.getElementById('sim-desc').innerText = conf.desc;
+
+            // Reset Buttons
+            ['solid', 'liquid', 'gas'].forEach(s => {
+                document.getElementById(`btn-${s}`).className = "px-8 py-3 font-bold rounded-xl shadow transition w-32 bg-gray-200 text-gray-700 hover:bg-gray-300";
+            });
+            document.getElementById(`btn-${state}`).className = "px-8 py-3 font-bold rounded-xl shadow transition w-32 " + conf.btnClass;
+
+            generateParticles();
+        }
+
+        // ================= INIT =================
+        window.onload = () => {
+            renderSidebar();
+            renderQuizzes();
+            // Start at page 1
+            showPage(1);
+        };
+    </script>
+</body>
+</html>
