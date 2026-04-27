@@ -1,3 +1,4 @@
+#by ansh raj 
 #first me import math module to perform some calclution
 import math
 #implement this cosin similarity formula (cosin(A,B)=A•B/|A|*|B|) in the function
