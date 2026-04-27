@@ -70,3 +70,4 @@ result = softmax(array)
 print([f'{x:.2f}' for x in result])
 #and the total sum of result become 100
 print(f"the sum is {sum(result)*100}%")
+print("thanks bro")
