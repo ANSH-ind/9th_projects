@@ -41,3 +41,4 @@ print(f"checking BC is equal to CA {BC==CA}")
 print(f"checking CA is equal to AB {CA==AB}")
 #so CA is equal to AB now we know that two side equal in isosceles right traingle that are CA==AB 
 
+#thanks to visit my repo and saw my solution
