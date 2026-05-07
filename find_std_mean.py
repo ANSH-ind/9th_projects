@@ -1,3 +1,4 @@
+#welocme to our git repo......
 n = 0
 mean = 0.
 M2 = 0.

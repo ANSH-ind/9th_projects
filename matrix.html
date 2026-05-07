@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tensor Dimensions Explorer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js and OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050510; font-family: 'Inter', sans-serif; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+        
+        /* Custom UI Scrollbar and general styles */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dim-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .dim-button.active {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Typing animation for the code block */
+        .typewriter {
+            display: inline-block;
+            overflow: hidden;
+            border-right: .15em solid orange;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: .05em;
+            animation: typing 2s steps(30, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: orange; } }
+    </style>
+</head>
+<body class="text-slate-100 antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="absolute top-0 left-0 w-full pointer-events-none z-10 flex flex-col items-center p-4 md:p-6 gap-4">
+        
+        <!-- Minimal Display -->
+        <div class="glass-panel pointer-events-auto rounded-2xl p-3 md:p-4 px-6 md:px-8 shadow-2xl flex flex-col items-center border border-slate-700/50 bg-slate-900/80">
+            <h1 class="text-xl md:text-2xl font-bold text-white mb-2 tracking-tight flex items-center gap-2">
+                Tensor <code class="bg-slate-800 text-blue-300 px-2 py-1 rounded-md font-mono text-lg shadow-inner">(3, 3, 3)</code>
+            </h1>
+            <div id="minimal-desc" class="text-slate-300 font-mono text-sm bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700/50">
+                Active Dimension: <span class="text-slate-400">None</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="pointer-events-auto flex justify-center w-full">
+            <div class="glass-panel p-2 rounded-2xl flex gap-2 md:gap-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+                <button onclick="setDimension(null)" id="btn-reset" class="dim-button bg-slate-700 hover:bg-slate-600 text-white px-5 py-3 rounded-xl font-medium transition-colors border border-slate-600">
+                    Reset
+                </button>
+                <div class="w-px bg-slate-700 mx-1"></div>
+                <button onclick="setDimension(0)" id="btn-dim0" class="dim-button bg-emerald-900/50 hover:bg-emerald-800 border border-emerald-500/30 text-emerald-300 px-5 py-3 rounded-xl font-medium transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    dim=0 <span class="hidden md:inline">(Depth)</span>
+                </button>
+                <button onclick="setDimension(1)" id="btn-dim1" class="dim-button bg-blue-900/50 hover:bg-blue-800 border border-blue-500/30 text-blue-300 px-5 py-3 rounded-xl font-medium transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    dim=1 <span class="hidden md:inline">(Rows)</span>
+                </button>
+                <button onclick="setDimension(2)" id="btn-dim2" class="dim-button bg-pink-900/50 hover:bg-pink-800 border border-pink-500/30 text-pink-300 px-5 py-3 rounded-xl font-medium transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+                    dim=2 <span class="hidden md:inline">(Cols)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- THREE.JS SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // Add subtle fog to blend into background
+        scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        // Zoomed out camera position to avoid UI overlap
+        camera.position.set(16, 13, 22);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.5;
+        // Re-center target since the bottom UI is gone
+        controls.target.set(0, 0, 0); 
+        controls.update();
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight1.position.set(10, 20, 10);
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0x88bbff, 0.8);
+        dirLight2.position.set(-10, -10, -10);
+        scene.add(dirLight2);
+
+        // --- TENSOR CUBES CREATION ---
+        const tensorSize = 3;
+        const cubeSpacing = 1.2;
+        const explodedSpacing = 3.0; // Reduced from 3.5 to prevent overlapping with UI
+        const cubes = [];
+
+        // Base Glass Material
+        const baseMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x475569, // Slate 600 base
+            metalness: 0.2,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.8,
+            transmission: 0.5,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.1
+        });
+
+        // Geometry with rounded edges
+        const geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+
+        // Create 3D grid
+        for (let k = 0; k < tensorSize; k++) {       // Depth (Dim 0)
+            for (let j = 0; j < tensorSize; j++) {   // Rows (Dim 1)
+                for (let i = 0; i < tensorSize; i++) { // Cols (Dim 2)
+                    const material = baseMaterial.clone();
+                    const cube = new THREE.Mesh(geometry, material);
+                    
+                    // Metadata
+                    cube.userData = {
+                        i: i, // X-axis (Cols)
+                        j: j, // Y-axis (Rows)
+                        k: k, // Z-axis (Depth)
+                        basePosition: new THREE.Vector3(
+                            (i - 1) * cubeSpacing,
+                            -(j - 1) * cubeSpacing, // Negative to map Y down for rows
+                            -(k - 1) * cubeSpacing  // Negative so depth goes 'inward'
+                        ),
+                        targetPosition: new THREE.Vector3(),
+                        baseColor: new THREE.Color(0x475569),
+                        targetColor: new THREE.Color(0x475569)
+                    };
+                    
+                    cube.position.copy(cube.userData.basePosition);
+                    cube.userData.targetPosition.copy(cube.userData.basePosition);
+                    
+                    // Edges for visual clarity
+                    const edges = new THREE.EdgesGeometry(geometry);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 }));
+                    cube.add(line);
+
+                    scene.add(cube);
+                    cubes.push(cube);
+                }
+            }
+        }
+
+        // --- SWEEPING PLANE (Visualizes the operation direction) ---
+        const planeGeometry = new THREE.PlaneGeometry(8, 8);
+        const planeMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.0, // Hidden by default
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+        const sweepPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+        scene.add(sweepPlane);
+
+
+        // --- STATE AND LOGIC ---
+        let currentDim = null;
+        let animationTime = 0;
+        
+        // Palette for coloring slices
+        const colors = [
+            0x10b981, // Emerald (dim 0)
+            0x3b82f6, // Blue (dim 1)
+            0xec4899  // Pink (dim 2)
+        ];
+
+        function setDimension(dim) {
+            currentDim = dim;
+            controls.autoRotate = false; // Stop auto-rotation to focus on the structure
+            
+            // Update UI
+            document.querySelectorAll('.dim-button').forEach(btn => btn.classList.remove('active', 'ring-2', 'ring-white', 'bg-opacity-100'));
+            
+            const minimalDesc = document.getElementById('minimal-desc');
+
+            if (dim === null) {
+                document.getElementById('btn-reset').classList.add('active', 'bg-opacity-100');
+                minimalDesc.innerHTML = 'Active Dimension: <span class="text-slate-400">None</span>';
+                sweepPlane.material.opacity = 0;
+                
+                // Reset positions and colors
+                cubes.forEach(cube => {
+                    cube.userData.targetPosition.copy(cube.userData.basePosition);
+                    cube.userData.targetColor.copy(cube.userData.baseColor);
+                    cube.material.opacity = 0.8;
+                });
+            } else {
+                document.getElementById(`btn-dim${dim}`).classList.add('active', 'ring-2', 'ring-white', 'bg-opacity-100');
+                
+                // Show sweeping plane
+                sweepPlane.material.opacity = 0.2;
+                sweepPlane.material.color.setHex(colors[dim]);
+
+                if (dim === 0) {
+                    minimalDesc.innerHTML = 'Active Dimension: <span class="text-emerald-400 font-bold">dim=0 (Depth)</span>';
+                    sweepPlane.rotation.set(0, 0, 0); // Facing Z
+                } else if (dim === 1) {
+                    minimalDesc.innerHTML = 'Active Dimension: <span class="text-blue-400 font-bold">dim=1 (Rows)</span>';
+                    sweepPlane.rotation.set(Math.PI / 2, 0, 0); // Facing Y
+                } else if (dim === 2) {
+                    minimalDesc.innerHTML = 'Active Dimension: <span class="text-pink-400 font-bold">dim=2 (Cols)</span>';
+                    sweepPlane.rotation.set(0, Math.PI / 2, 0); // Facing X
+                }
+
+                // Update targets
+                cubes.forEach(cube => {
+                    const u = cube.userData;
+                    const tp = u.targetPosition;
+                    
+                    // Explode geometry
+                    tp.x = (u.i - 1) * (dim === 2 ? explodedSpacing : cubeSpacing);
+                    tp.y = -(u.j - 1) * (dim === 1 ? explodedSpacing : cubeSpacing);
+                    tp.z = -(u.k - 1) * (dim === 0 ? explodedSpacing : cubeSpacing);
+
+                    // Color Coding: color blocks based on their index in the active dimension
+                    let colorIndex = 0;
+                    if (dim === 0) colorIndex = u.k;
+                    if (dim === 1) colorIndex = u.j;
+                    if (dim === 2) colorIndex = u.i;
+
+                    // Create a shade variant of the main color
+                    const baseDimColor = new THREE.Color(colors[dim]);
+                    // Shift lightness slightly to differentiate slices
+                    const hsl = { h: 0, s: 0, l: 0 };
+                    baseDimColor.getHSL(hsl);
+                    baseDimColor.setHSL(hsl.h, hsl.s, 0.3 + (colorIndex * 0.2)); 
+                    
+                    u.targetColor.copy(baseDimColor);
+                    cube.material.opacity = 0.9;
+                });
+            }
+        }
+
+        // --- ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            animationTime += delta;
+
+            // Lerp cube positions and colors
+            cubes.forEach((cube, index) => {
+                // Add a slight floating effect
+                const floatOffset = Math.sin(animationTime * 2 + index * 0.1) * 0.05;
+                
+                const targetY = cube.userData.targetPosition.y + floatOffset;
+                const targetVec = new THREE.Vector3(
+                    cube.userData.targetPosition.x,
+                    targetY,
+                    cube.userData.targetPosition.z
+                );
+
+                cube.position.lerp(targetVec, 0.08); // Springy interpolation
+                cube.material.color.lerp(cube.userData.targetColor, 0.05);
+            });
+
+            // Animate Sweep Plane
+            if (currentDim !== null) {
+                // Oscillator between -explodedSpacing and +explodedSpacing
+                const sweepPos = Math.sin(animationTime * 3) * (explodedSpacing * 1.2);
+                
+                if (currentDim === 0) {
+                    sweepPlane.position.set(0, 0, sweepPos);
+                } else if (currentDim === 1) {
+                    sweepPlane.position.set(0, sweepPos, 0);
+                } else if (currentDim === 2) {
+                    sweepPlane.position.set(sweepPos, 0, 0);
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- WINDOW RESIZE ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start
+        setDimension(null); // Initialize text
+        animate();
+    </script>
+</body>
+</html>
+
