@@ -1,0 +1,7 @@
+from fastapi import FastAPI
+
+
+app = FastAPI()
+@app.get("/users/{id}")
+def search_user(id: int):
+    return {"user id": id, "name": "ansh raj"}
